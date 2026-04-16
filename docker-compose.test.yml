@@ -1,0 +1,46 @@
+services:
+  db-test:
+    image: mongo:6-jammy
+    container_name: goalbum_mongo_test
+    ports:
+      - '27018:27017'
+    volumes:
+      - goalbum_mongo_test_data:/data/db
+    restart: always
+
+  api-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: goalbum_api_test
+    ports:
+      - '3001:3000'
+    environment:
+      - MONGO_URI=mongodb://db-test:27017/goalbum_test
+      - PORT=3000
+    depends_on:
+      - db-test
+    restart: always
+
+  web-test:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+        - VITE_APP_VERSION=${VITE_APP_VERSION:-1.0.0-test}
+        - VITE_APP_OWNER=${VITE_APP_OWNER:-camilonavarro14}
+        - VITE_APP_NAME=${VITE_APP_NAME:-Goalbum}
+        - VITE_TERMS_URL=${VITE_TERMS_URL:-}
+        - VITE_APP_ENV=TEST
+    container_name: goalbum_web_test
+    ports:
+      - '8080:80'
+    environment:
+      - VITE_APP_ENV=TEST
+    depends_on:
+      - api-test
+    restart: always
+
+volumes:
+  goalbum_mongo_test_data:
